@@ -1,0 +1,77 @@
+import java.io.*;
+import java.net.*;
+import java.awt.*;
+import javax.swing.*;
+
+public class Client {
+    private static final String SERVER_IP = "143.44.86.127"; // Replace with the server's IP address
+    private static final int PORT = 12345;
+
+    private static int paddleY = 250;
+    private static int score = 0;
+    private static int ballX = 390;
+    private static int ballY = 290;
+
+    public static void main(String[] args) {
+        try {
+            Socket socket = new Socket(SERVER_IP, PORT);
+            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            BufferedWriter out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+
+            JFrame frame = new JFrame("Pong Game");
+            frame.setSize(800, 600);
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setVisible(true);
+
+            // Set up the game panel
+            JPanel panel = new JPanel() {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    super.paintComponent(g);
+                    g.setColor(Color.WHITE);
+                    g.fillRect(0, 0, 800, 600);
+
+                    // Draw paddles and ball
+                    g.setColor(Color.RED);
+                    g.fillRect(20, paddleY, 15, 100); // Player paddle
+                    g.setColor(Color.BLUE);
+                    g.fillRect(765, paddleY, 15, 100); // Opponent paddle
+                    g.setColor(Color.GREEN);
+                    g.fillRect(ballX, ballY, 20, 20); // Ball
+                }
+            };
+            frame.add(panel);
+
+            // KeyListener for paddle movement
+            frame.addKeyListener(new java.awt.event.KeyAdapter() {
+                public void keyPressed(java.awt.event.KeyEvent e) {
+                    if (e.getKeyCode() == KeyEvent.VK_UP) {
+                        out.write("UP\n");
+                        out.flush();
+                    }
+                    if (e.getKeyCode() == KeyEvent.VK_DOWN) {
+                        out.write("DOWN\n");
+                        out.flush();
+                    }
+                }
+            });
+
+            // Game loop to read server updates and update the screen
+            while (true) {
+                // Get game state from server
+                String state = in.readLine();
+                String[] tokens = state.split(" ");
+                paddleY = Integer.parseInt(tokens[0]);
+                score = Integer.parseInt(tokens[1]);
+                ballX = Integer.parseInt(tokens[2]);
+                ballY = Integer.parseInt(tokens[3]);
+
+                // Repaint the game screen
+                panel.repaint();
+                Thread.sleep(16); // 60 FPS (approximately)
+            }
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+}
